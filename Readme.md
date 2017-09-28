@@ -1,14 +1,15 @@
-# Readme.md
+# Pimcore Docker Image
 
-## Build container
-docker build -t dvonrohr/pimcore .
+Installs a nginx server with PHP7 and all needed Pimcore requirements. 
 
-## Run image
+Build the image:
 
+```
+$ docker build -t dvonrohr-docker .
+```
 
-### Data volume container
-docker create -v /var/www/html/pimcore --name pimcore-data debian:jessie /bin/true
+Run the image:
 
-docker run --name pimcore-mysql -e MYSQL_ROOT_PASSWORD=root -d mysql
-
-docker run --name pimcore-sandbox --link pimcore-mysql:mysql -it -p 8080:80 --volumes-from pimcore-data dvonrohr/pimcore /bin/bash
+```
+$ docker run -it -v /local/path:/var/www/html -p8080:80 dvonrohr-docker
+```

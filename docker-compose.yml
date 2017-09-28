@@ -1,19 +1,27 @@
-version: '2'
+version: '3'
+
 services:
-    pimcore:
-        build: .
-        ports:
-            - "80:80"
-        volumes:
-            - ./www:/var/www/html/pimcore
-        links:
-            - mysql
-        depends_on:
-            - mysql
-        privileged: true
-    mysql:
-        image: mysql
-        environment:
-            - MYSQL_ROOT_PASSWORD=root
-        ports:
-            - "3306:3306"
+   db:
+     image: mysql:5.7
+     volumes:
+       - db_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: somepimcore
+       MYSQL_DATABASE: pimcore
+       MYSQL_USER: pimcore
+       MYSQL_PASSWORD: pimcore
+
+   pimcore:
+     depends_on:
+       - db
+     image: pimcore-docker:latest
+     ports:
+       - "8000:80"
+     restart: always
+     environment:
+       PIMCORE_DB_HOST: db:3306
+       PIMCORE_DB_USER: pimcore
+       PIMCORE_DB_PASSWORD: pimcore
+volumes:
+    db_data:

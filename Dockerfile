@@ -1,47 +1,23 @@
-FROM ubuntu:16.04
-Maintainer Daniel Rudolf von Rohr <d.rudolf.von.rohr@gmail.com>
+FROM alpine:latest
 
-# install dependencies
-RUN apt-get update && apt-get -y install apache2
+RUN apk --update --no-cache add php7 php7-fpm php7-mysqli php7-json php7-openssl php7-curl \
+	php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype \
+	php7-mbstring php7-gd php7-bz2 php7-exif php7-fileinfo php7-iconv \
+	php7-mcrypt php7-opcache php7-zip php7-zlib nginx supervisor curl && rm /var/cache/apk/*
 
-# install php-7
-RUN apt-get install -y php unzip
-RUN apt-get install -y libapache2-mod-php7.0 php7.0-mysql php-bz2 php-gd php-zip php-xml php7.0-curl php7.0-json php7.0-mcrypt php-mbstring composer
+# Configure composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
-# set up virtual host
-RUN a2enmod rewrite
-RUN rm /etc/apache2/sites-available/000-default.conf
-ADD pimcore.conf /etc/apache2/sites-available/000-default.conf
-# RUN a2ensite pimcore.conf
+# Configure nginx
+COPY config/nginx.conf /etc/nginx/nginx.conf
 
-# Update the PHP.ini file, enable <? ?> tags and quieten logging.
-RUN sed -i "s/short_open_tag = Off/short_open_tag = On/" /etc/php/7.0/apache2/php.ini
-RUN sed -i "s/error_reporting = .*$/error_reporting = E_ERROR | E_WARNING | E_PARSE/" /etc/php/7.0/apache2/php.ini
+# Configure PHP-FPM
+COPY config/fpm-pool.conf /etc/php7/php-fpm.d/zzz_custom.conf
+COPY config/php.ini /etc/php7/conf.d/zzz_custom.ini
 
-# get pimcore source
-# run mkdir /var/www/html/pimcore
-# WORKDIR /var/www/html/pimcore
-# RUN composer create-project pimcore/pimcore .
-# RUN composer dumpautoload -o
+# Configure supervisord
+COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Manually set up the apache environment variables
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_PID_FILE /var/run/apache2.pid
-
-ADD www /var/www/html/pimcore
-
-# set filesystem permissions
-# RUN chown -R www-data:www-data website/var pimcore plugins
-
-RUN usermod -u 1000 www-data
-RUN usermod -G staff www-data
-
-EXPOSE 80
-
-ADD start.sh /start.sh
-RUN chmod 0755 /start.sh
-CMD ["bash", "start.sh"]
+EXPOSE 80 443
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
